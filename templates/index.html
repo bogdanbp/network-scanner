@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Network Scanner</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
+    .alive { background-color: #c8e6c9; }
+    .button-container { margin-bottom: 1em; }
+    button { margin: 0.5em; padding: 0.5em; cursor: pointer; }
+    .progress-container { width: 100%; background: #ccc; margin-top: 1em; }
+    .progress-bar { width: 0%; height: 20px; background: #4caf50; text-align: center; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Network Scanner</h1>
+  <p>Select a network to scan:</p>
+  <div class="button-container">
+    {% for network in networks %}
+      <button onclick="scanNetwork('{{ network }}')">Scan {{ network }}</button>
+    {% endfor %}
+  </div>
+  
+  <div class="progress-container">
+    <div id="progress-bar" class="progress-bar">0%</div>
+  </div>
+  
+  <div id="result"></div>
+
+  <script>
+    function scanNetwork(network) {
+      document.getElementById('result').innerHTML = '<p>Scanning ' + network + '...</p>';
+      let progressBar = document.getElementById('progress-bar');
+      progressBar.style.width = '0%';
+      progressBar.innerText = '0%';
+      
+      let progress = 0;
+      let progressInterval = setInterval(() => {
+        if (progress < 90) {
+          progress += 10;
+          progressBar.style.width = progress + '%';
+          progressBar.innerText = progress + '%';
+        }
+      }, 1500);
+
+      fetch('/scan?network=' + encodeURIComponent(network))
+        .then(response => response.json())
+        .then(data => {
+          clearInterval(progressInterval);
+          progressBar.style.width = '100%';
+          progressBar.innerText = '100%';
+          
+          let sortedIPs = Object.keys(data).sort((a, b) => {
+            return a.split('.').map(Number).join('') - b.split('.').map(Number).join('');
+          });
+          
+          let table = '<table><tr><th>IP</th><th>Status</th></tr>';
+          sortedIPs.forEach(ip => {
+            table += `<tr class="alive"><td>${ip}</td><td>${data[ip]}</td></tr>`;
+          });
+          table += '</table>';
+          document.getElementById('result').innerHTML = table;
+        })
+        .catch(error => {
+          clearInterval(progressInterval);
+          progressBar.style.width = '0%';
+          progressBar.innerText = '0%';
+          document.getElementById('result').innerHTML = '<p>Error scanning.</p>';
+        });
+    }
+  </script>
+</body>
+</html>

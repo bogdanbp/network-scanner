@@ -1,0 +1,9 @@
+FROM python:3.9-slim AS builder
+WORKDIR /app
+RUN pip install Flask scapy
+EXPOSE 5000
+COPY . /app
+CMD ["python", "app.py"]
+
+FROM nginx
+COPY --from=builder /app /usr/share/nginx/html
